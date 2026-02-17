@@ -1,70 +1,84 @@
 # AI Experts Assignment (Python)
 
-This assignment evaluates your ability to:
+# Bug Fix & Test Suite
 
-- set up a small Python project to run reliably (locally + in Docker),
-- pin dependencies for reproducible installs,
-- write focused tests to reproduce a bug,
-- implement a minimal, reviewable fix.
+A minimal Python HTTP client that handles OAuth2 token authentication automatically.
+This project demonstrates how to identify, reproduce, and fix a subtle token refresh bug,
+with full test coverage and Docker support for reproducible runs.
 
-## What you will do
+---
 
-### 1) Dockerfile (required)
+## The Bug (Summary)
 
-Create a `Dockerfile` so the project can run the test suite in a non-interactive, CI-style environment.
+The token refresh logic failed silently when `oauth2_token` was a plain dictionary
+instead of a proper `OAuth2Token` object. The request would go out with no
+`Authorization` header attached.
 
-Requirements:
+**Broken condition:**
+```python
+if not self.oauth2_token or (isinstance(self.oauth2_token, OAuth2Token) and self.oauth2_token.expired):
+```
 
-- requirements.txt exists and is used during build (pip install -r requirements.txt)
-- pytest must be included/pinned in requirements.txt
-- The image must run tests by default (use: `CMD ["python", "-m", "pytest", "-v"]`).
-- The build must install dependencies from `requirements.txt`.
+**Fixed condition:**
+```python
+if not isinstance(self.oauth2_token, OAuth2Token) or self.oauth2_token.expired:
+```
 
-### 2) requirements.txt (required)
+See `EXPLANATION.md` for the full breakdown.
 
-Create a `requirements.txt` with pinned versions, using this format:
+---
 
-- `package==x.y.z`
+## Project Structure
+```
+.
+├── app/
+│   ├── __init__.py
+│   ├── http_client.py       # Client with OAuth2 token handling + thread lock
+│   └── tokens.py            # OAuth2Token dataclass
+├── tests/
+│   ├── conftest.py
+│   └── test_http_client.py  # Tests covering all token states
+├── Dockerfile
+├── EXPLANATION.md
+├── requirements.txt
+└── README.md
+```
 
-### 3) README updates (required)
+---
 
-Update this README to include:
+## Running Tests Locally
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
 
-- how to run the tests locally,
-- how to build and run tests with Docker.
+# 2. Run the test suite
+PYTHONPATH=. python -m pytest -v --override-ini="addopts="
+```
 
-### 4) Find + fix a bug (required)
+---
 
-There is a bug somewhere in this repository.
+## Running Tests with Docker
+```bash
+# 1. Build the image
+docker build -t oauth2-http-client .
 
-Your tasks:
+# 2. Run the tests
+docker run --rm oauth2-http-client
+```
 
-- Identify the bug.
-- Apply the smallest possible fix to make the tests pass.
-- Keep the change minimal and reviewable (no refactors).
+The container runs `python -m pytest -v` by default and exits with code `0` on success.
 
-## Constraints
+---
 
-- Keep changes minimal and reviewable.
-- Do not refactor unrelated code.
-- Do not introduce extra tooling unless required.
-- You may add tests and the smallest code change needed to fix the bug.
+## What the Tests Cover
 
-### 5) EXPLANATION.md (required)
-
-Create `EXPLANATION.md` (max 250 words) containing:
-
-- **What was the bug?**
-- **Why did it happen?**
-- **Why does your fix solve it?**
-- **One realistic case / edge case your tests still don’t cover**
-
-## Submission
-
-- Submit a public GitHub repository URL containing your solution to the Google form link provided.
-
-
-# After Modifications:
+| Test | Scenario |
+|---|---|
+| `test_client_uses_requests_session` | Client initializes with a proper session |
+| `test_token_from_iso_uses_dateutil` | Token is correctly parsed from ISO timestamp |
+| `test_api_request_sets_auth_header_when_token_is_valid` | Valid token → header attached directly |
+| `test_api_request_refreshes_when_token_is_missing` | `None` token → refresh triggered |
+| `test_api_request_refreshes_when_token_is_dict` | Dict token → refresh triggered (the bug case) |
 
 ## Project structure
 
