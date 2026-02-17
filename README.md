@@ -62,3 +62,47 @@ Create `EXPLANATION.md` (max 250 words) containing:
 ## Submission
 
 - Submit a public GitHub repository URL containing your solution to the Google form link provided.
+
+
+# After Modifications:
+
+## Project structure
+
+```
+.
+├── app/
+│   ├── __init__.py
+│   ├── http_client.py
+│   └── tokens.py
+├── tests/
+│   ├── conftest.py
+│   └── test_http_client.py
+├── Dockerfile
+├── EXPLANATION.md
+├── requirements.txt
+└── README.md
+```
+
+## Running tests locally
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the test suite
+PYTHONPATH=. python -m pytest -v --override-ini="addopts="
+# Or just use always
+PYTHONPATH=. PYTEST_PLUGINS="" .venv/bin/python -m pytest -v --override-ini="addopts="
+```
+
+## Running tests with Docker
+
+```bash
+# Build the image
+docker build -t ai-experts-assignment .
+
+# Run the tests
+docker run --rm ai-experts-assignment
+```
+
+The container runs `python -m pytest -v` by default and exits with code `0` on success.

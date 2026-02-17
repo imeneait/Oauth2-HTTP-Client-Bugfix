@@ -1,5 +1,7 @@
+# Wrapping class client with Lock to avoid the edge case (two threads)
 from __future__ import annotations
 
+import threading
 from typing import Any, Dict, Optional, Union
 
 import requests
@@ -11,6 +13,7 @@ class Client:
     def __init__(self) -> None:
         self.oauth2_token: Union[OAuth2Token, Dict[str, Any], None] = None
         self.session = requests.Session()
+        self._token_lock = threading.Lock()  # added
 
     def refresh_oauth2(self) -> None:
         self.oauth2_token = OAuth2Token(access_token="fresh-token", expires_at=10**10)
@@ -27,13 +30,12 @@ class Client:
             headers = {}
 
         if api:
-            if not self.oauth2_token or (
-                isinstance(self.oauth2_token, OAuth2Token) and self.oauth2_token.expired
-            ):
-                self.refresh_oauth2()
+            with self._token_lock:  # added
+                if not isinstance(self.oauth2_token, OAuth2Token) or self.oauth2_token.expired:
+                    self.refresh_oauth2()
 
-            if isinstance(self.oauth2_token, OAuth2Token):
-                headers["Authorization"] = self.oauth2_token.as_header()
+                if isinstance(self.oauth2_token, OAuth2Token):
+                    headers["Authorization"] = self.oauth2_token.as_header()
 
         req = requests.Request(method=method, url=f"https://example.com{path}", headers=headers)
         prepared = self.session.prepare_request(req)
