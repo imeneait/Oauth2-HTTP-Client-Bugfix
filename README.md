@@ -12,7 +12,7 @@ with full test coverage and Docker support for reproducible runs.
 
 The token refresh logic failed silently when `oauth2_token` was a plain dictionary
 instead of a proper `OAuth2Token` object. The request would go out with no
-`Authorization` header attached.
+`Authorization` header attached (only http_client.py is changed)
 
 **Broken condition:**
 ```python
@@ -37,7 +37,7 @@ See `EXPLANATION.md` for the full breakdown.
 │   └── tokens.py            # OAuth2Token dataclass
 ├── tests/
 │   ├── conftest.py
-│   └── test_http_client.py  # Tests covering all token states
+│   └── test_http_client.py  # Tests covering all token states 
 ├── Dockerfile
 ├── EXPLANATION.md
 ├── requirements.txt
